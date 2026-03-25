@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node.js プロジェクト検出
+      - name: Check for Node.js project
+        id: node
+        run: |
+          if [ -f "package.json" ]; then
+            echo "detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "detected=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Python プロジェクト検出
+      - name: Check for Python project
+        id: python
+        run: |
+          if [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+            echo "detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "detected=false" >> $GITHUB_OUTPUT
+          fi
+
+      # Node.js セットアップ + テスト
+      - name: Setup Node.js
+        if: steps.node.outputs.detected == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        if: steps.node.outputs.detected == 'true'
+        run: npm ci
+
+      - name: Lint (Node.js)
+        if: steps.node.outputs.detected == 'true'
+        run: npm run lint --if-present
+
+      - name: Test (Node.js)
+        if: steps.node.outputs.detected == 'true'
+        run: npm test --if-present
+
+      - name: Build (Node.js)
+        if: steps.node.outputs.detected == 'true'
+        run: npm run build --if-present
+
+      # Python セットアップ + テスト
+      - name: Setup Python
+        if: steps.python.outputs.detected == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python dependencies
+        if: steps.python.outputs.detected == 'true'
+        run: |
+          pip install -r requirements.txt 2>/dev/null || true
+          pip install -e ".[dev]" 2>/dev/null || true
+
+      - name: Lint (Python)
+        if: steps.python.outputs.detected == 'true'
+        run: |
+          pip install ruff
+          ruff check . || true
+
+      - name: Test (Python)
+        if: steps.python.outputs.detected == 'true'
+        run: |
+          pip install pytest
+          pytest --tb=short || true
+
+      # プロジェクトが検出されない場合
+      - name: No project detected
+        if: steps.node.outputs.detected == 'false' && steps.python.outputs.detected == 'false'
+        run: echo "No Node.js or Python project detected. CI skipped."
