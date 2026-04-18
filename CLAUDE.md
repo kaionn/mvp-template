@@ -8,6 +8,54 @@
 2. `docs/deep-dive.md` が存在すれば参照する（競合分析、ペルソナ、GTM 戦略）
 3. `docs/origin.md` から生成元の情報を確認する
 
+## docs/spec.md の読み方
+
+Spec は YAML Front Matter + Markdown body の形式（[pain-collector Spec Schema v1](https://github.com/kaionn/pain-collector/blob/main/specs/SCHEMA.md) 準拠）。
+
+### 必須フィールド（Front Matter）
+
+| フィールド | 役割 | 実装での扱い |
+|---|---|---|
+| `product_name` | リポジトリ名の base | `package.json` の `name` に使用 |
+| `source_issue` | pain-collector の Issue 番号 | README に「生成元」として記載 |
+| `title` | 人間向けタイトル | README の見出し、ページの `<title>` |
+| `tech_stack.frontend` | フロントエンド技術 | これに従って実装。デフォルト Next.js 14 と異なる場合は撤去して指定スタックに置き換える |
+| `tech_stack.backend` | バックエンド技術 | `"なし"` の場合はクライアントサイドのみで実装 |
+| `tech_stack.database` | DB | `"localStorage"` `"なし"` の場合は永続化なしか LocalStorage |
+| `tech_stack.infrastructure` | デプロイ先 | `deployment_target` と整合させる |
+| `data_model[]` | エンティティ定義 | 型定義（TypeScript の `interface`）と DB スキーマに反映 |
+| `api_endpoints[]` | API 設計 | バックエンドあり時は実装。空配列ならフロントオンリー |
+| `mvp_scope[]` | 必須機能リスト | これだけ実装する。これ以外は TODO コメントで残す |
+| `success_metrics[]` | KPI | README に「成功指標」として記載 |
+| `deployment_target` | `vercel` / `github-pages` / `cloudflare-pages` | デプロイ設定ファイルを生成 |
+
+### スタック不一致時の置換ガイダンス
+
+Front Matter の `tech_stack` がテンプレートのデフォルトと異なる場合、以下のように置き換える:
+
+| `tech_stack.frontend` | アクション |
+|---|---|
+| `"Next.js 14"` 系 | デフォルト boilerplate をそのまま使う |
+| `"React Native"` | Next.js 関連ファイル（next.config.mjs, app/）を撤去し Expo セットアップに切替 |
+| `"Vue 3"` / `"SvelteKit"` 等 | Next.js を撤去し対応フレームワークに切替 |
+| `"なし"`（HTML+CSS+JS のみ） | フレームワーク削除、`index.html` のみで実装 |
+
+| `deployment_target` | アクション |
+|---|---|
+| `vercel` | `vercel.json` を生成（必要なら） |
+| `github-pages` | `.github/workflows/deploy-pages.yml` を生成 |
+| `cloudflare-pages` | `wrangler.toml` を生成 |
+
+### Front Matter 検証エラーへの対応
+
+Spec の Front Matter が schema 検証に失敗している場合、mvp-factory 側でこのリポジトリは作成されない。
+仮に作成されている場合は、以下のいずれか:
+
+- Front Matter が存在しない legacy Spec（移行期間中）→ Markdown body から推測して実装
+- 検証をバイパスして手動 dispatch された → Spec を読み解いて可能な範囲で実装
+
+
+
 ## 実装フロー
 
 compound-engineering プラグインが利用可能な場合:
