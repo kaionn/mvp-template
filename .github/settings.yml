@@ -1,0 +1,30 @@
+# Repository Settings Action 用の宣言的設定
+# https://github.com/repository-settings/app
+#
+# 注: この機能を有効にするには Repository Settings GitHub App をリポジトリにインストールする必要がある.
+# 未インストールの場合はこのファイルは無視される.
+
+repository:
+  default_branch: main
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+
+branches:
+  - name: main
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 0
+        dismiss_stale_reviews: false
+      required_status_checks:
+        strict: true
+        contexts:
+          - detect-and-test
+      enforce_admins: false
+      restrictions: null
+      allow_force_pushes: false
+      allow_deletions: false
